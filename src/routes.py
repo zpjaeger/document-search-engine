@@ -7,19 +7,44 @@
 import json
 import uvicorn
 import os
+from typing import List, Dict
 from fastapi import FastAPI
 
 app = FastAPI()
 
-# Add logic here
+
+# ===================== Helper Functions =================
+
+# Load documents from a local JSON file
+def load_documents(file_path: str) -> List[Dict]:
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"Document file not found: {file_path}")
+    with open(file_path, 'r') as file:
+        documents = json.load(file)
+    return documents
+
+ #==================== Load Documents =====================
+
+document = load_documents("data/documents.json")
+synonyms = load_documents("constants/synonyms.json")
+
+# ===================== API Endpoints =====================
+# Example endpoint
 @app.get("/hello")
 def hello():
-    return {"message": "Hello, World!"}
+    return document
+
+@app.get("/synonyms")
+def get_synonyms():
+    return synonyms
 
 
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+
     
 
 
