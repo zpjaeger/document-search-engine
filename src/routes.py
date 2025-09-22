@@ -7,8 +7,8 @@
 import json
 import uvicorn
 import os
-from typing import List, Dict
-from fastapi import FastAPI
+from typing import List, Dict, Optional
+from fastapi import FastAPI, HTTPException
 
 app = FastAPI()
 
@@ -28,15 +28,45 @@ def load_documents(file_path: str) -> List[Dict]:
 document = load_documents("data/documents.json")
 synonyms = load_documents("constants/synonyms.json")
 
+def tokenize(text: str) -> List[str]: # Simple whitespace tokenizer
+    return text.lower().split()
+
 # ===================== API Endpoints =====================
 # Example endpoint
 @app.get("/hello")
 def hello():
+
     return document
 
 @app.get("/synonyms")
 def get_synonyms():
     return synonyms
+
+
+# Return list of document ids
+@app.get("/documents")
+def list_documents():
+    try:
+        ids = [d.get("id") for d in document]
+    except Exception:
+        ids = []
+    return {"count": len(ids), "ids": ids}
+
+
+# Get a single document by id (iterates through `document` and matches `id`)
+@app.get("/documents/{doc_id}")
+def get_document_by_id(doc_id: str):
+    # naive linear search: iterate through documents and return the one with matching id
+    for doc in document:
+        # support numeric ids or string ids in the JSON
+        try:
+            if str(doc.get("id")) == str(doc_id):
+                return doc
+        except Exception:
+            # fallback to direct comparison
+            if str(doc.get("id")) == str(doc_id):
+                return doc
+    raise HTTPException(status_code=404, detail=f"Document with id {doc_id} not found")
 
 
 
