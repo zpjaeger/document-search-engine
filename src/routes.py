@@ -4,8 +4,9 @@
 #4.  **Testing:** Include unit tests that cover the implementation details of your search engine (e.g., indexing, scoring, ranking).
 
 # 1. Retrieve documents from local data source in data/documents.json
-from collections import defaultdict
+from collections import Counter, defaultdict
 import json
+import math
 import uvicorn
 import os
 import re
@@ -43,11 +44,28 @@ tokens = [tokenize(document["body"]) for document in document]
 #==================== Build Index =====================
 
 def build_index(documents):
-    index = defaultdict(lambda:defaultdict(int))
+    index = defaultdict(dict)
     for doc in documents:
-        for token in set(tokenize(doc["body"])):
-            index[token][doc["id"]] += 1
+        doc_id = doc["id"]
+        text = f"{doc.get('title','')} {doc.get('body','')}"
+        counts = Counter(tokenize(text))
+        for token, cnt in counts.items():
+            index[token][doc_id] = cnt
     return index
+
+index = build_index(document)
+N = len(document)  # total number of documents
+
+#==================== Compute IDF =====================
+
+def compute_idf(index, N):
+    idf = {}
+    for term, postings in index.items():
+        df = len(postings)  # number of docs containing this term
+        idf[term] = math.log((N + 1) / (df + 1)) + 1  # smoothed IDF
+    return idf
+
+idf = compute_idf(index, N)
 
 # ===================== API Endpoints =====================
 # Example endpoint
@@ -68,6 +86,10 @@ def get_tokens():
 def get_index():
     index = build_index(document)
     return index
+
+@app.get("/idf")
+def get_idf():
+    return idf
 
 # Return list of document ids
 @app.get("/documents")
