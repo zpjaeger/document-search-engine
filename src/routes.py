@@ -7,6 +7,7 @@
 import json
 import uvicorn
 import os
+import re
 from typing import List, Dict, Optional
 from fastapi import FastAPI, HTTPException
 
@@ -28,8 +29,15 @@ def load_documents(file_path: str) -> List[Dict]:
 document = load_documents("data/documents.json")
 synonyms = load_documents("constants/synonyms.json")
 
-def tokenize(text: str) -> List[str]: # Simple whitespace tokenizer
-    return text.lower().split()
+#==================== Tokenization =====================
+
+def tokenize(text: str):
+    tokens = re.findall(r"\b\w+(?:'\w+)?\b", text.lower())
+    cleaned = [t[:-2] if t.endswith("'s") else t for t in tokens]
+    return cleaned
+
+
+tokens = [tokenize(document["body"]) for document in document]
 
 # ===================== API Endpoints =====================
 # Example endpoint
@@ -42,6 +50,9 @@ def hello():
 def get_synonyms():
     return synonyms
 
+@app.get("/tokens")
+def get_tokens():
+    return tokens
 
 # Return list of document ids
 @app.get("/documents")
