@@ -4,6 +4,7 @@
 #4.  **Testing:** Include unit tests that cover the implementation details of your search engine (e.g., indexing, scoring, ranking).
 
 # 1. Retrieve documents from local data source in data/documents.json
+from collections import defaultdict
 import json
 import uvicorn
 import os
@@ -39,6 +40,15 @@ def tokenize(text: str):
 
 tokens = [tokenize(document["body"]) for document in document]
 
+#==================== Build Index =====================
+
+def build_index(documents):
+    index = defaultdict(lambda:defaultdict(int))
+    for doc in documents:
+        for token in set(tokenize(doc["body"])):
+            index[token][doc["id"]] += 1
+    return index
+
 # ===================== API Endpoints =====================
 # Example endpoint
 @app.get("/hello")
@@ -53,6 +63,11 @@ def get_synonyms():
 @app.get("/tokens")
 def get_tokens():
     return tokens
+
+@app.get("/index")
+def get_index():
+    index = build_index(document)
+    return index
 
 # Return list of document ids
 @app.get("/documents")
