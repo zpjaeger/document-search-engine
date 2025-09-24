@@ -67,6 +67,7 @@ def compute_idf(index, N):
 
 idf = compute_idf(index, N)
 
+
 # ===================== API Endpoints =====================
 # Example endpoint
 @app.get("/hello")
@@ -90,6 +91,17 @@ def get_index():
 @app.get("/idf")
 def get_idf():
     return idf
+
+@app.get("/api/search")
+def search_documents(query: str):
+    # Simple search implementation (to be improved)
+    results = []
+    for doc in document:
+        if query.lower() in doc.get("body", "").lower():
+            results.append(doc)
+    #Sort documents by idf score of query term
+    results.sort(key=lambda doc: idf.get(query.lower(), 0), reverse=True)
+    return {"count": len(results), "documents": results}
 
 # Return list of document ids
 @app.get("/documents")
