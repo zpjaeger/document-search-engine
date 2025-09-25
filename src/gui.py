@@ -13,7 +13,8 @@ def display_results(results):
     for widget in result_frame.winfo_children():
         widget.destroy()
     for doc in results.get("documents", []):
-        label = tk.Label(result_frame, text=doc.get("title", "Untitled"))
+        text = f"{doc.get('title','')} {doc.get('body','')}"
+        label = tk.Label(result_frame, text=text, justify="left", wraplength=400)
         label.pack(anchor="w")
 
 result_frame = tk.Frame(root)
