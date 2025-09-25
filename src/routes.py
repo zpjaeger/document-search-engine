@@ -92,15 +92,32 @@ def get_index():
 def get_idf():
     return idf
 
+doc_map = {d["id"]: d for d in document}
 @app.get("/api/search")
 def search_documents(query: str):
-    # Simple search implementation (to be improved)
+    query_terms = tokenize(query)
+    scores = defaultdict(float)
+    for term in query_terms:
+        if term not in index:
+            continue #skip terms not in index
+        # Compute TF-IDF scores for each document
+        for doc_id, tf in index[term].items():
+            scores[doc_id] += tf * idf.get(term, 0.0)
+
+    #rank results by score
+    ranked_docs = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+
+    #Collect full document objects with scores
     results = []
-    for doc in document:
-        if query.lower() in doc.get("body", "").lower():
-            results.append(doc)
-    #Sort documents by idf score of query term
-    results.sort(key=lambda doc: idf.get(query.lower(), 0), reverse=True)
+    for doc_id, score in ranked_docs:
+        doc = doc_map.get(doc_id)
+        if doc:
+            results.append({
+                "id": doc.get("id"),
+                "title": doc.get("title"),
+                "body": doc.get("body"),
+                "score": round(score, 4)
+            })
     return {"count": len(results), "documents": results}
 
 # Return list of document ids
