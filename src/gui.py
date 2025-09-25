@@ -13,9 +13,19 @@ def display_results(results):
     for widget in result_frame.winfo_children():
         widget.destroy()
     for doc in results.get("documents", []):
-        text = f"{doc.get('title','')} {doc.get('body','')}"
-        label = tk.Label(result_frame, text=text, justify="left", wraplength=400)
-        label.pack(anchor="w")
+        #Create border for each result
+        frame = tk.Frame(result_frame, borderwidth=1, relief="solid")
+        frame.pack(fill="x", pady=3)
+
+        #Title Text, bold and larger font
+        title_text = doc.get("title", "")
+        tk.Label(frame, text=title_text, font=("Helvetica", 14, "bold")).pack(anchor="w")
+        
+        #Body Text 
+        body_text = doc.get("body", "")
+        snippet = body_text[:200] + ("..." if len(body_text) > 200 else "")
+        tk.Label(frame, text=snippet, font=("Helvetica", 10), wraplength=400, justify="left").pack(anchor="w")
+        
 
 result_frame = tk.Frame(root)
 result_frame.pack(padx=10, pady=10)
