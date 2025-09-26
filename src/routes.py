@@ -11,7 +11,7 @@ import uvicorn
 import os
 import re
 from typing import List, Dict, Optional
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 
 app = FastAPI()
 
@@ -71,9 +71,11 @@ idf = compute_idf(index, N)
 
 doc_map = {d["id"]: d for d in document}
 
-#pure scoring function (not an endpoint)
+#==================== Search & Ranking =====================
 
-def score_query_terms(query_terms: index=index, idf=idf):
+#Search function that returns ranked documents based on TF-IDF scores
+
+def score_query_terms(query_terms, index=index, idf=idf):
     scores = defaultdict(float)
     for term in query_terms:
         if term not in index:
@@ -82,7 +84,9 @@ def score_query_terms(query_terms: index=index, idf=idf):
         for doc_id, tf in index[term].items():
             scores[doc_id] += tf * idf.get(term, 0.0)
     return scores
-#pure ranking function (not an endpoint)
+
+
+ #Get ranked documents from scores
 
 def get_ranking_from_scores(scores, doc_map, top_k: Optional[int] = None):
     ranked_docs = sorted(scores.items(), key=lambda item: item[1], reverse=True)
@@ -100,6 +104,17 @@ def get_ranking_from_scores(scores, doc_map, top_k: Optional[int] = None):
             "score": round(score, 4)
             })
     return results
+
+# Wrapper function to handle search queries
+
+def search_query(query: str, index=index, idf=idf, doc_map=doc_map, top_k: Optional[int] = 10):
+    query_terms = tokenize(query)
+    if not query_terms:
+        return {"count": 0, "documents": []}
+    scores = score_query_terms(query_terms, index, idf)
+    results = get_ranking_from_scores(scores, doc_map, top_k)
+    return {"count": len(results), "documents": results}
+
 # ===================== API Endpoints =====================
 # Example endpoint
 @app.get("/hello")
@@ -125,13 +140,9 @@ def get_idf():
     return idf
 
 @app.get("/api/search")
-def search_documents(query: str):
-    query_terms = tokenize(query)
-    #rank results by score
-    ranked_docs = sorted(scores.items(), key=lambda item: item[1], reverse=True)
-
-    return {"count": len(results), "documents": results}
-
+def search_documents(query: str = Query(...), top_k: Optional[int] = None):
+    return search_query(query, top_k=top_k)
+    
 # Return list of document ids
 @app.get("/documents")
 def list_documents():
