@@ -82,6 +82,24 @@ def score_query_terms(query_terms: index=index, idf=idf):
         for doc_id, tf in index[term].items():
             scores[doc_id] += tf * idf.get(term, 0.0)
     return scores
+#pure ranking function (not an endpoint)
+
+def get_ranking_from_scores(scores, doc_map, top_k: Optional[int] = None):
+    ranked_docs = sorted(scores.items(), key=lambda item: item[1], reverse=True)
+    if top_k:
+        ranked_docs = ranked_docs[:top_k]
+    results = []
+    for doc_id, score in ranked_docs:
+        doc = doc_map.get(doc_id)
+        if not doc:
+            continue
+        results.append({
+            "id": doc.get("id"),
+            "title": doc.get("title"),
+            "body": doc.get("body"),
+            "score": round(score, 4)
+            })
+    return results
 # ===================== API Endpoints =====================
 # Example endpoint
 @app.get("/hello")
@@ -112,17 +130,6 @@ def search_documents(query: str):
     #rank results by score
     ranked_docs = sorted(scores.items(), key=lambda item: item[1], reverse=True)
 
-    #Collect full document objects with scores
-    results = []
-    for doc_id, score in ranked_docs:
-        doc = doc_map.get(doc_id)
-        if doc:
-            results.append({
-                "id": doc.get("id"),
-                "title": doc.get("title"),
-                "body": doc.get("body"),
-                "score": round(score, 4)
-            })
     return {"count": len(results), "documents": results}
 
 # Return list of document ids
