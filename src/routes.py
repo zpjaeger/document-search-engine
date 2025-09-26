@@ -67,7 +67,21 @@ def compute_idf(index, N):
 
 idf = compute_idf(index, N)
 
+#fast lookups of documents by id
 
+doc_map = {d["id"]: d for d in document}
+
+#pure scoring function (not an endpoint)
+
+def score_query_terms(query_terms: index=index, idf=idf):
+    scores = defaultdict(float)
+    for term in query_terms:
+        if term not in index:
+            continue #skip terms not in index
+        # Compute TF-IDF scores for each document
+        for doc_id, tf in index[term].items():
+            scores[doc_id] += tf * idf.get(term, 0.0)
+    return scores
 # ===================== API Endpoints =====================
 # Example endpoint
 @app.get("/hello")
@@ -92,18 +106,9 @@ def get_index():
 def get_idf():
     return idf
 
-doc_map = {d["id"]: d for d in document}
 @app.get("/api/search")
 def search_documents(query: str):
     query_terms = tokenize(query)
-    scores = defaultdict(float)
-    for term in query_terms:
-        if term not in index:
-            continue #skip terms not in index
-        # Compute TF-IDF scores for each document
-        for doc_id, tf in index[term].items():
-            scores[doc_id] += tf * idf.get(term, 0.0)
-
     #rank results by score
     ranked_docs = sorted(scores.items(), key=lambda item: item[1], reverse=True)
 
